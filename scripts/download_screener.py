@@ -27,6 +27,9 @@ DOWNLOAD_SELECTORS = [
     "text=Download as CSV",
     "button:has-text('Download as CSV')",
     "[aria-label='Download as CSV']",
+    "[aria-label='Download']",
+    "svg[data-icon='download']",
+    "[class*='download' i] >> visible=true",
 ]
 
 # Candidate selectors for cookie/consent banners that might block the click.
@@ -77,7 +80,11 @@ async def run(cdp_url: str, outdir: str, timeout_s: int):
             print("Is the existing headless Chrome session running? See openclaw-browser-setup-runbook.md", file=sys.stderr)
             sys.exit(2)
 
-        context = browser.contexts[0] if browser.contexts else await browser.new_context(accept_downloads=True)
+        # Always create a fresh context with an explicit desktop-sized viewport.
+        # Reusing an existing context can inherit a narrow/mobile viewport, which
+        # causes the SGX site to render icon-only buttons instead of the
+        # text-labeled "Download as CSV" button our selectors look for.
+        context = await browser.new_context(viewport={"width": 1600, "height": 1000})
         page = await context.new_page()
 
         try:
